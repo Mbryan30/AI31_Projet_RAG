@@ -1,4 +1,5 @@
 venv/
+chroma_rgpd/
 .env
 __pycache__/
 *.pyc
