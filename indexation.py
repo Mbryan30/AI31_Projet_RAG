@@ -123,8 +123,6 @@ for chapitre in data:
                 metadata={**metadata_base, "type": "child_chunk", "chunk_index": i}
             ))
 
-# Index de récupération rapide parent_id → document complet 
-parent_index = {doc.metadata["parent_id"]: doc for doc in parent_documents}
 
 # On transforme chaque Document en dico {page_content, metadata}
 parents_a_sauver = [
@@ -138,12 +136,6 @@ with open("parent_documents.json", "w", encoding="utf-8") as f:
 print(f"✅  créetion de parent_documents.json")
 print(f"✅  {len(parent_documents)} articles parents")
 print(f"✅  {len(child_documents)} child chunks")
-
-
-# In[10]:
-
-
-parent_index
 
 
 # ## 4. Embeddings & Vector Store
@@ -168,9 +160,5 @@ vector_store = Chroma.from_documents(
     persist_directory="./chroma_rgpd"
 )
 
-# base_retriever = vector_store.as_retriever(
-#     search_type="similarity",
-#     search_kwargs={"k": 6}
-# )
 
 print(f"✅  Vector store : {vector_store._collection.count()} chunks indexés")
