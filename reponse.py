@@ -1,3 +1,4 @@
+import re, json, uuid, warnings
 from langchain_core.documents import Document
 import json
 
@@ -85,7 +86,7 @@ Variantes :"""
 
 vector_store = Chroma(
                     persist_directory = "./chroma_rgpd",
-                    embedding_fonction = embedding_model
+                    embedding_function = embedding_model
 )
 
 base_retriever = vector_store.as_retriever(
