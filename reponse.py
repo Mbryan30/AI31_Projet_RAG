@@ -26,9 +26,12 @@ from langchain_core.language_models.llms import LLM
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from typing import Optional, List, Any
 
-model_name = "Qwen/Qwen2.5-3B-Instruct"
+model_name = "Qwen/Qwen2.5-3B-Instruct"   # ← ou 1.5B / 3B selon ton choix
 tokenizer  = AutoTokenizer.from_pretrained(model_name)
 model_hf   = AutoModelForCausalLM.from_pretrained(model_name)
+
+# ID du token de fin de tour Qwen — c'est LUI qui arrête la génération proprement
+im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
 
 pipe = pipeline(
     "text-generation",
@@ -37,27 +40,41 @@ pipe = pipeline(
     max_new_tokens=800,
     temperature=0.3,
     do_sample=True,
-    repetition_penalty=1.15,        # ← pénalise la répétition
-    eos_token_id=tokenizer.eos_token_id,  # ← signal d'arrêt explicite
+    repetition_penalty=1.15,
+    eos_token_id=[tokenizer.eos_token_id, im_end_id],
+    pad_token_id=tokenizer.eos_token_id,
 )
 
-# Wrapper LangChain compatible (supprime le prompt répété en sortie)
+
 class LocalLLMWrapper(LLM):
     hf_pipeline: Any
+    hf_tokenizer: Any
 
     @property
     def _llm_type(self) -> str:
         return "local_hf"
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs) -> str:
-        output = self.hf_pipeline(prompt)[0]["generated_text"]
-        if output.startswith(prompt):
-            output = output[len(prompt):].strip()
+        # Formate selon le chat template natif de Qwen 2.5-Instruct
+        messages = [{"role": "user", "content": prompt}]
+        formatted = self.hf_tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        output = self.hf_pipeline(formatted)[0]["generated_text"]
+
+        # Retire le prompt formaté du début de la sortie
+        if output.startswith(formatted):
+            output = output[len(formatted):].strip()
+
+        # Filet de sécurité : nettoie un éventuel <|im_end|> restant
+        output = output.replace("<|im_end|>", "").strip()
         return output
 
-llm = LocalLLMWrapper(hf_pipeline=pipe)
-print("✅  LLM prêt")
 
+llm = LocalLLMWrapper(hf_pipeline=pipe, hf_tokenizer=tokenizer)
+print("✅  LLM prêt")
 
 # ## 6. Multi-Query Retriever
 # 
