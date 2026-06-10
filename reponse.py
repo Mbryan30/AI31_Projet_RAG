@@ -26,7 +26,7 @@ from langchain_core.language_models.llms import LLM
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from typing import Optional, List, Any
 
-model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+model_name = "Qwen/Qwen2.5-3B-Instruct"
 tokenizer  = AutoTokenizer.from_pretrained(model_name)
 model_hf   = AutoModelForCausalLM.from_pretrained(model_name)
 
@@ -34,9 +34,11 @@ pipe = pipeline(
     "text-generation",
     model=model_hf,
     tokenizer=tokenizer,
-    max_new_tokens=356,
+    max_new_tokens=800,
     temperature=0.3,
     do_sample=True,
+    repetition_penalty=1.15,        # ← pénalise la répétition
+    eos_token_id=tokenizer.eos_token_id,  # ← signal d'arrêt explicite
 )
 
 # Wrapper LangChain compatible (supprime le prompt répété en sortie)
