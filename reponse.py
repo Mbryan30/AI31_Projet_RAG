@@ -255,66 +255,163 @@ def full_rag_pipeline(question: str) -> dict:
 
 # ── Routeur principal ─────────────────────────────────────────────────
 def smart_rag_pipeline(question: str) -> dict:
-
-    # ── Routeur 1 : article précis ──
-    match = re.search(r"article\s+(\d+|premier)", question, re.IGNORECASE)
-    if match:
-        numero      = match.group(1).capitalize()
-        article_key = f"Article {numero}"
-        found = [d for d in parent_documents
-                 if d.metadata["article"].lower() == article_key.lower()]
-        if found:
-            d, m = found[0], found[0].metadata
+# Ordre des traitements :
+# 1. Recherche explicite d'un ou plusieurs articles.
+#    Exemples :
+#    - "Que dit l'article 5 ?"
+#    - "Compare l'article 5 et l'article 6"
+#    - "Montre-moi les articles 5, 6 et 7"
+# 2. Recherche explicite d'un chapitre à partir de son titre.
+#    Exemple :
+#    - "Quels articles concernent les droits de la personne concernée ?"
+# 3. Si aucun article ou chapitre n'est détecté,
+#    on utilise le pipeline RAG classique.
+# ==========================================================
+# ROUTEUR 1 : RECHERCHE D'UN OU PLUSIEURS ARTICLES
+# ==========================================================
+# On cherche d'abord les formulations du type :
+# "article 5", "article 20", "article premier", etc.
+    articles_detectes = re.findall(
+        r"article\s+(\d+|premier)",
+        question,
+        re.IGNORECASE
+    )
+    # Liste finale des numéros d'articles détectés
+    numeros = []
+    if articles_detectes:
+        # Exemple :
+        # "article 5 et article 6"
+        # -> ['5', '6']
+        numeros = [a.capitalize() for a in articles_detectes]
+    else:
+        # Gestion des formulations du type :
+        # "articles 5, 6 et 7"
+        # "articles 12, 13, 14"
+        match_plural = re.search(
+            r"articles?\s+([\d,\set]+)",
+            question,
+            re.IGNORECASE
+        )
+        if match_plural:
+            numeros = re.findall(r"\d+", match_plural.group(1))
+    # Si au moins un numéro d'article a été trouvé
+    if numeros:
+        articles_trouves = []
+        # Recherche des articles correspondants dans le corpus
+        for numero in numeros:
+            article_key = f"Article {numero}"
+            found = [
+                d for d in parent_documents
+                if d.metadata["article"].lower()
+                == article_key.lower()
+            ]
+            if found:
+                articles_trouves.append(found[0])
+        # ======================================================
+        # CAS 1 : UN SEUL ARTICLE TROUVÉ
+        # ======================================================
+        if len(articles_trouves) == 1:
+            d = articles_trouves[0]
+            m = d.metadata
             reponse = (
                 f"## 1. Réponse directe\n"
-                f"L'{article_key} se trouve dans le {m['chapitre']} – {m['titre_chapitre']}.\n\n"
-                f"## 2. Article concerné\n{m['article']} – {m['titre_article']}\n\n"
-                f"## 3. Contenu complet\n{d.page_content}"
+                f"L'{m['article']} se trouve dans le "
+                f"{m['chapitre']} – {m['titre_chapitre']}.\n\n"
+                f"## 2. Article concerné\n"
+                f"{m['article']} – {m['titre_article']}\n\n"
+                f"## 3. Contenu complet\n"
+                f"{d.page_content}"
             )
             return {
-                "question":       question,
-                "reponse":        reponse,
-                "articles_cites": [f"{m['article']} ({m['chapitre']} – {m['titre_chapitre']})"]
+                "question": question,
+                "reponse": reponse,
+                "articles_cites": [
+                    f"{m['article']} ({m['chapitre']} – {m['titre_chapitre']})"
+                ]
             }
+        # ======================================================
+        # CAS 2 : PLUSIEURS ARTICLES TROUVÉS
+        # ======================================================
+        if len(articles_trouves) > 1:
+            reponse = (
+                "## 1. Réponse directe\n"
+                f"{len(articles_trouves)} articles ont été trouvés.\n\n"
+            )
+            reponse += "## 2. Articles concernés\n\n"
+            for d in articles_trouves:
+                m = d.metadata
+                reponse += (
+                    f"### {m['article']} – {m['titre_article']}\n"
+                    f"Chapitre : {m['chapitre']} – "
+                    f"{m['titre_chapitre']}\n\n"
+                    f"{d.page_content}\n\n"
+                    f"{'-' * 60}\n\n"
+                )
+            return {
+                "question": question,
+                "reponse": reponse,
+                "articles_cites": [
+                    f"{d.metadata['article']} "
+                    f"({d.metadata['chapitre']} – "
+                    f"{d.metadata['titre_chapitre']})"
+                    for d in articles_trouves
+                ]
+            }
+        # Aucun article du corpus ne correspond
         return {
-            "question":       question,
-            "reponse":        f"{article_key} n'existe pas dans le RGPD (99 articles au total).",
+            "question": question,
+            "reponse": (
+                "Aucun des articles demandés n'existe "
+                "dans le RGPD."
+            ),
             "articles_cites": []
         }
-
-    # ── Routeur 2 : titre de chapitre détecté ──  ← HORS du if match
+    # ==========================================================
+    # ROUTEUR 2 : RECHERCHE D'UN CHAPITRE PAR SON TITRE
+    # ==========================================================
     chapitre_match = next(
-        (c for c in parent_documents
-         if c.metadata["titre_chapitre"].lower() in question.lower()),
+        (
+            c for c in parent_documents
+            if c.metadata["titre_chapitre"].lower()
+            in question.lower()
+        ),
         None
     )
     if chapitre_match:
         m = chapitre_match.metadata
+        # Récupération de tous les articles du chapitre
         articles_du_chapitre = [
             d for d in parent_documents
             if d.metadata["chapitre"] == m["chapitre"]
         ]
         reponse = (
             f"## 1. Réponse directe\n"
-            f"Le chapitre qui traite de « {m['titre_chapitre']} » "
+            f"Le chapitre qui traite de "
+            f"« {m['titre_chapitre']} » "
             f"est le **{m['chapitre']}**.\n\n"
-            f"## 2. Articles concernés\n" +
-            "\n".join(
-                f"- {a.metadata['article']} – {a.metadata['titre_article']}"
+            f"## 2. Articles concernés\n"
+            + "\n".join(
+                f"- {a.metadata['article']} – "
+                f"{a.metadata['titre_article']}"
                 for a in articles_du_chapitre
             )
         )
         return {
-            "question":       question,
-            "reponse":        reponse,
+            "question": question,
+            "reponse": reponse,
             "articles_cites": [
                 f"{a.metadata['article']} ({m['chapitre']})"
                 for a in articles_du_chapitre
             ]
         }
-
-    # ── Routeur 3 : question sémantique ──
+    # ==========================================================
+    # ROUTEUR 3 : RECHERCHE SÉMANTIQUE (RAG COMPLET)
+    # ==========================================================
+    # Si aucun article ou chapitre n'est identifié,
+    # on utilise le pipeline RAG classique :
+    # recherche vectorielle + reranking + LLM.
     return full_rag_pipeline(question)
+
 
 
 print("✅  Pipelines prêts  →  utilise smart_rag_pipeline() pour toutes tes questions")
