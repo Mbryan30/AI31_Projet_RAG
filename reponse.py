@@ -26,9 +26,11 @@ from langchain_core.language_models.llms import LLM
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from typing import Optional, List, Any
 
+
 model_name = "Qwen/Qwen2.5-3B-Instruct"   # ← ou 1.5B / 3B 
 tokenizer  = AutoTokenizer.from_pretrained(model_name)
 model_hf   = AutoModelForCausalLM.from_pretrained(model_name)
+
 
 # ID du token de fin de tour Qwen — c'est LUI qui arrête la génération proprement
 im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
@@ -46,6 +48,7 @@ pipe = pipeline(
 )
 
 
+# Wrapper LangChain compatible (supprime le prompt répété en sortie)
 class LocalLLMWrapper(LLM):
     hf_pipeline: Any
     hf_tokenizer: Any
@@ -73,7 +76,7 @@ class LocalLLMWrapper(LLM):
         return output
 
 
-llm = LocalLLMWrapper(hf_pipeline=pipe, hf_tokenizer=tokenizer)
+llm = LocalLLMWrapper(hf_pipeline=pipe)
 print("✅  LLM prêt")
 
 # ## 6. Multi-Query Retriever
@@ -114,17 +117,20 @@ base_retriever = vector_store.as_retriever(
     search_kwargs={"k": 6}
 )
 
+
 def generate_queries(question: str) -> list:
     output = llm.invoke(multi_query_prompt.format(question=question))
     return [q.strip() for q in output.split("\n") if q.strip()][:4]
 
+
 def multi_query_search(question: str) -> list:
-    queries  = generate_queries(question)
+    queries = generate_queries(question)
     all_docs = []
     for q in queries:
         all_docs.extend(base_retriever.invoke(q))
     # Déduplication par contenu
     return list({doc.page_content: doc for doc in all_docs}.values())
+
 
 print("✅  Multi-Query prêt")
 
@@ -137,10 +143,10 @@ print("✅  Multi-Query prêt")
 
 
 def retrieve_parent_documents(question: str, top_k: int = 8) -> list:
-    child_hits      = multi_query_search(question)
+    child_hits = multi_query_search(question)
     seen_parent_ids = set()
-    parent_docs     = []
-    best_child      = {}  
+    parent_docs = []
+    best_child = {}
 
     """ - pid renvoie l'indentifiant du document parent associé à un chunk enfant, permettant de regrouper les chunks par article complet. 
         - Doc c'est le document complet de l'article, avec son contenu et ses métadonnées, récupéré à partir de l'index parent_index en utilisant le parent_id.
@@ -155,14 +161,14 @@ def retrieve_parent_documents(question: str, top_k: int = 8) -> list:
             doc = parent_index.get(pid)
             if doc:
                 parent_docs.append(doc)
-                best_child[pid] = child.page_content  
+                best_child[pid] = child.page_content
         if len(parent_docs) >= top_k:
             break
 
-    return parent_docs, best_child  
+    return parent_docs, best_child
+
 
 print("✅  Parent Document Retriever prêt")
-
 
 # ## 8. Re-ranker – Cross-Encoder
 # 
@@ -175,13 +181,14 @@ from sentence_transformers import CrossEncoder
 
 reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
 
+
 def rerank_documents(question: str, docs: list, best_child: dict, top_n: int = 3) -> list:  # ← NOUVEAU : best_child
     if not docs:
         return []
 
     pairs = []
     for doc in docs:
-        pid  = doc.metadata.get("parent_id")
+        pid = doc.metadata.get("parent_id")
         text = best_child.get(pid, doc.page_content[:512])
         pairs.append((question, text))
 
@@ -189,8 +196,8 @@ def rerank_documents(question: str, docs: list, best_child: dict, top_n: int = 3
     ranked = sorted(zip(scores, docs), key=lambda x: x[0], reverse=True)
     return [doc for _, doc in ranked[:top_n]]
 
-print("✅  Re-ranker prêt")
 
+print("✅  Re-ranker prêt")
 
 # ## 9. Prompt RGPD & Pipelines
 # 
@@ -238,21 +245,22 @@ Réponse :
 
 prompt_template = ChatPromptTemplate.from_template(RGPD_PROMPT)
 
+
 def format_parent_docs(docs: list) -> str:
     parts = []
     for doc in docs:
         m = doc.metadata
         parts.append(
-            f"{'='*60}\n{m['chapitre']} – {m['titre_chapitre']}\n"
-            f"{m['article']} – {m['titre_article']}\n{'='*60}\n{doc.page_content}"
+            f"{'=' * 60}\n{m['chapitre']} – {m['titre_chapitre']}\n"
+            f"{m['article']} – {m['titre_article']}\n{'=' * 60}\n{doc.page_content}"
         )
     return "\n\n".join(parts)
 
 
 # ── Pipeline sémantique complet ──────────────────────────────────────
 def full_rag_pipeline(question: str) -> dict:
-    parent_docs, best_child = retrieve_parent_documents(question, top_k=8)  
-    reranked_docs = rerank_documents(question, parent_docs, best_child, top_n=3) 
+    parent_docs, best_child = retrieve_parent_documents(question, top_k=8)
+    reranked_docs = rerank_documents(question, parent_docs, best_child, top_n=3)
 
     articles_cites = [
         f"{d.metadata['article']} ({d.metadata['chapitre']} – {d.metadata['titre_chapitre']})"
@@ -275,22 +283,22 @@ def full_rag_pipeline(question: str) -> dict:
 
 # ── Routeur principal ─────────────────────────────────────────────────
 def smart_rag_pipeline(question: str) -> dict:
-# Ordre des traitements :
-# 1. Recherche explicite d'un ou plusieurs articles.
-#    Exemples :
-#    - "Que dit l'article 5 ?"
-#    - "Compare l'article 5 et l'article 6"
-#    - "Montre-moi les articles 5, 6 et 7"
-# 2. Recherche explicite d'un chapitre à partir de son titre.
-#    Exemple :
-#    - "Quels articles concernent les droits de la personne concernée ?"
-# 3. Si aucun article ou chapitre n'est détecté,
-#    on utilise le pipeline RAG classique.
-# ==========================================================
-# ROUTEUR 1 : RECHERCHE D'UN OU PLUSIEURS ARTICLES
-# ==========================================================
-# On cherche d'abord les formulations du type :
-# "article 5", "article 20", "article premier", etc.
+    # Ordre des traitements :
+    # 1. Recherche explicite d'un ou plusieurs articles.
+    #    Exemples :
+    #    - "Que dit l'article 5 ?"
+    #    - "Compare l'article 5 et l'article 6"
+    #    - "Montre-moi les articles 5, 6 et 7"
+    # 2. Recherche explicite d'un chapitre à partir de son titre.
+    #    Exemple :
+    #    - "Quels articles concernent les droits de la personne concernée ?"
+    # 3. Si aucun article ou chapitre n'est détecté,
+    #    on utilise le pipeline RAG classique.
+    # ==========================================================
+    # ROUTEUR 1 : RECHERCHE D'UN OU PLUSIEURS ARTICLES
+    # ==========================================================
+    # On cherche d'abord les formulations du type :
+    # "article 5", "article 20", "article premier", etc.
     articles_detectes = re.findall(
         r"article\s+(\d+|premier)",
         question,
@@ -323,7 +331,7 @@ def smart_rag_pipeline(question: str) -> dict:
             found = [
                 d for d in parent_documents
                 if d.metadata["article"].lower()
-                == article_key.lower()
+                   == article_key.lower()
             ]
             if found:
                 articles_trouves.append(found[0])
@@ -393,7 +401,7 @@ def smart_rag_pipeline(question: str) -> dict:
         (
             c for c in parent_documents
             if c.metadata["titre_chapitre"].lower()
-            in question.lower()
+               in question.lower()
         ),
         None
     )
@@ -405,16 +413,16 @@ def smart_rag_pipeline(question: str) -> dict:
             if d.metadata["chapitre"] == m["chapitre"]
         ]
         reponse = (
-            f"## 1. Réponse directe\n"
-            f"Le chapitre qui traite de "
-            f"« {m['titre_chapitre']} » "
-            f"est le **{m['chapitre']}**.\n\n"
-            f"## 2. Articles concernés\n"
-            + "\n".join(
-                f"- {a.metadata['article']} – "
-                f"{a.metadata['titre_article']}"
-                for a in articles_du_chapitre
-            )
+                f"## 1. Réponse directe\n"
+                f"Le chapitre qui traite de "
+                f"« {m['titre_chapitre']} » "
+                f"est le **{m['chapitre']}**.\n\n"
+                f"## 2. Articles concernés\n"
+                + "\n".join(
+            f"- {a.metadata['article']} – "
+            f"{a.metadata['titre_article']}"
+            for a in articles_du_chapitre
+        )
         )
         return {
             "question": question,
@@ -434,3 +442,4 @@ def smart_rag_pipeline(question: str) -> dict:
 
 
 print("✅  Pipelines prêts  →  utilise smart_rag_pipeline() pour toutes tes questions")
+

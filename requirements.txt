@@ -1,3 +1,4 @@
+
 # =============================================================
 # Projet RAG - LO17/AI31 (UTC, Printemps 2026)
 # Corpus : RGPD (texte juridique francais)
@@ -33,3 +34,4 @@ streamlit
 # --- Notebook uniquement (affichage HTML des reponses) ---
 # Deja inclus avec Jupyter ; a retirer pour l'app Streamlit
 ipython
+

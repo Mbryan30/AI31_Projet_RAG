@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background-color: theme('colors.bg.DEFAULT');
+    color: theme('colors.tx.DEFAULT');
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: theme('colors.bg.3'); border-radius: 4px; }
+
+  /* Prose dark overrides */
+  .prose-invert { --tw-prose-body: theme('colors.tx.DEFAULT'); }
+}
+
+@layer utilities {
+  .font-serif { font-family: theme('fontFamily.serif'); }
+  .font-mono  { font-family: theme('fontFamily.mono'); }
+}
