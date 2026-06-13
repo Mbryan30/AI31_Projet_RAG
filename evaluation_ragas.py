@@ -51,6 +51,7 @@ from reponse import (
 # plus stable qu'avec temperature=0.3. On REUTILISE les poids déjà en mémoire,
 # donc pas de rechargement coûteux.
 from transformers import pipeline
+from backend.app.services.pipeline import RAGPipeline
 
 im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
 
@@ -142,7 +143,7 @@ print(f"\n⏳  Génération des réponses sur {len(gold_set)} questions...")
 dataset = []
 for i, item in enumerate(gold_set, 1):
     print(f"   {i}/{len(gold_set)}  {item['question'][:55]}...")
-    out = full_rag_pipeline(item["question"])   # <-- ton pipeline RAG complet
+    out = RAGPipeline.full_rag(item["question"])   # <-- ton pipeline RAG complet
     dataset.append({
         "user_input":         item["question"],
         "retrieved_contexts": out["contexts"],   
