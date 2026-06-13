@@ -4,7 +4,7 @@ Projet réalisé dans le cadre de l'UV **LO17 / AI31 — Indexation et Recherche
 
 ## Description
 
-Ce projet implémente un système de **Retrieval Augmented Generation (RAG)** sur le thème du Seigneur des Anneaux. Le RAG permet de poser des questions en français et d'obtenir des réponses précises basées sur un corpus de documents, en combinant la recherche d'information et la génération de texte via un LLM (Gemini).
+Ce projet implémente un système de **Retrieval Augmented Generation (RAG)** sur le thème du RGPD. Le RAG permet de poser des questions en français et d'obtenir des réponses précises basées sur un corpus de documents, en combinant la recherche d'information et la génération de texte via un LLM (Gemini).
 
 ## Technologies utilisées
 

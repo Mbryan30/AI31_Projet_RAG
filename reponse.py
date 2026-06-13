@@ -26,7 +26,7 @@ from langchain_core.language_models.llms import LLM
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from typing import Optional, List, Any
 
-model_name = "Qwen/Qwen2.5-3B-Instruct"   # ← ou 1.5B / 3B selon ton choix
+model_name = "Qwen/Qwen2.5-3B-Instruct"   # ← ou 1.5B / 3B 
 tokenizer  = AutoTokenizer.from_pretrained(model_name)
 model_hf   = AutoModelForCausalLM.from_pretrained(model_name)
 
@@ -105,7 +105,8 @@ Variantes :"""
 
 vector_store = Chroma(
                     persist_directory = "./chroma_rgpd",
-                    embedding_function = embedding_model
+                    embedding_function = embedding_model,
+                    collection_name="rgpd_chunks",
 )
 
 base_retriever = vector_store.as_retriever(
@@ -269,7 +270,7 @@ def full_rag_pipeline(question: str) -> dict:
     if marker in raw:
         raw = raw[raw.rfind(marker) + len(marker):].strip()
 
-    return {"question": question, "reponse": raw, "articles_cites": articles_cites}
+    return {"question": question, "reponse": raw, "articles_cites": articles_cites, "contexts": [d.page_content for d in reranked_docs]}
 
 
 # ── Routeur principal ─────────────────────────────────────────────────
@@ -430,7 +431,6 @@ def smart_rag_pipeline(question: str) -> dict:
     # on utilise le pipeline RAG classique :
     # recherche vectorielle + reranking + LLM.
     return full_rag_pipeline(question)
-
 
 
 print("✅  Pipelines prêts  →  utilise smart_rag_pipeline() pour toutes tes questions")
