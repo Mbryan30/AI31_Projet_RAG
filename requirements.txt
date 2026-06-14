@@ -1,37 +1,37 @@
+# =============================================================================
+#  AI31_Projet_RAG — Dépendances Python (backend + évaluation)
+#  UTC, LO17/AI31 — Printemps 2026
+#
+#  Versions épinglées sur un environnement fonctionnel (Python 3.14, Windows).
+#  Note : d'anciennes versions plus basses (pydantic 2.7, chromadb 0.5, …) ne
+#  compilent pas sur Python 3.14 → on s'en tient aux versions ci-dessous.
+#
+#  Installation :  pip install -r requirements.txt
+# =============================================================================
 
-# =============================================================
-# Projet RAG - LO17/AI31 (UTC, Printemps 2026)
-# Corpus : RGPD (texte juridique francais)
-# Pile : 100% local (embeddings + LLM HuggingFace, pas de Gemini)
-# Python recommande : 3.10 ou 3.11
-# =============================================================
+# ── API (backend FastAPI) ───────────────────────────────────────────
+fastapi
+uvicorn[standard]==0.48.0
+pydantic==2.13.4
+pydantic-settings==2.14.1
+python-dotenv==1.2.2
 
-# --- Ecosysteme LangChain (packages eclates depuis la v0.2) ---
-langchain-core
-langchain
-langchain-community
-langchain-text-splitters
+# ── Pipeline RAG (LangChain) ────────────────────────────────────────
+langchain==0.3.30
+langchain-core==1.4.7
+langchain-community==0.3.24
+langchain-text-splitters==0.3.11
+langchain-mistralai==1.1.5
+chromadb==1.5.9
 
-# --- Base de donnees vectorielle ---
-chromadb
+# ── Embeddings & reranker (HuggingFace, CPU) ────────────────────────
+# sentence-transformers tire torch + transformers automatiquement.
+sentence-transformers==5.5.1
 
-# --- Embeddings, reranker et LLM local (HuggingFace) ---
-sentence-transformers      # HuggingFaceEmbeddings + CrossEncoder (reranker)
-transformers               # pipeline + Qwen2.5-0.5B-Instruct
-torch                      # backend des modeles (device="cpu" dans ton code)
+# ── Parsing du corpus RGPD (HTML) ───────────────────────────────────
+beautifulsoup4==4.14.3
 
-# --- Recuperation et parsing du corpus RGPD (HTML) ---
-requests
-beautifulsoup4
-lxml                       # parser rapide pour BeautifulSoup
-
-# --- Securite des cles / variables d'environnement ---
-python-dotenv
-
-# --- Interface (livrable demande par les consignes) ---
-streamlit
-
-# --- Notebook uniquement (affichage HTML des reponses) ---
-# Deja inclus avec Jupyter ; a retirer pour l'app Streamlit
-ipython
-
+# ── Évaluation (RAGAS) ──────────────────────────────────────────────
+ragas==0.4.3
+datasets==5.0.0
+pandas==3.0.3

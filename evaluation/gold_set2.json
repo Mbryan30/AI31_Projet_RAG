@@ -1,0 +1,42 @@
+[
+  {
+    "question": "Qu'est-ce qu'une donnée à caractère personnel selon le RGPD ?",
+    "reference": "Selon l'article 4-1, une donnée à caractère personnel est toute information se rapportant à une personne physique identifiée ou identifiable, directement ou indirectement, notamment par un nom, un numéro d'identification, des données de localisation ou un identifiant en ligne."
+  },
+  {
+    "question": "Qu'est-ce qu'un traitement de données personnelles ?",
+    "reference": "L'article 4-2 définit le traitement comme toute opération appliquée à des données personnelles : collecte, enregistrement, organisation, conservation, modification, consultation, utilisation, communication, effacement ou destruction, de façon automatisée ou non."
+  },
+  {
+    "question": "Qui est le responsable du traitement ?",
+    "reference": "L'article 4-7 définit le responsable du traitement comme la personne physique ou morale, l'autorité publique ou l'organisme qui, seul ou conjointement avec d'autres, détermine les finalités et les moyens du traitement."
+  },
+  {
+    "question": "Qu'est-ce qu'une violation de données à caractère personnel ?",
+    "reference": "L'article 4-12 définit la violation comme une violation de la sécurité entraînant, de manière accidentelle ou illicite, la destruction, la perte, l'altération, la divulgation non autorisée de données personnelles, ou l'accès non autorisé à celles-ci."
+  },
+  {
+    "question": "Qu'est-ce que le droit à l'effacement (droit à l'oubli) ?",
+    "reference": "L'article 17 donne à la personne concernée le droit d'obtenir l'effacement de ses données dans les meilleurs délais, notamment lorsqu'elles ne sont plus nécessaires, qu'elle retire son consentement, ou qu'elles ont fait l'objet d'un traitement illicite."
+  },
+  {
+    "question": "Qu'est-ce que le droit d'accès de la personne concernée ?",
+    "reference": "L'article 15 permet à la personne concernée d'obtenir du responsable la confirmation que ses données sont traitées, l'accès à ces données, ainsi que des informations sur les finalités, les destinataires et la durée de conservation."
+  },
+  {
+    "question": "Dans quel délai une violation de données doit-elle être notifiée à l'autorité de contrôle ?",
+    "reference": "Selon l'article 33, le responsable du traitement notifie la violation à l'autorité de contrôle dans les meilleurs délais et, si possible, 72 heures au plus tard après en avoir pris connaissance, sauf si elle n'engendre pas de risque pour les droits et libertés."
+  },
+  {
+    "question": "Qu'est-ce que la pseudonymisation ?",
+    "reference": "L'article 4-5 définit la pseudonymisation comme le traitement de données de telle façon qu'elles ne puissent plus être attribuées à une personne précise sans information supplémentaire, conservée séparément et soumise à des mesures techniques et organisationnelles."
+  },
+  {
+    "question": "Qu'est-ce que le droit à la portabilité des données ?",
+    "reference": "L'article 20 permet à la personne concernée de recevoir les données qu'elle a fournies dans un format structuré, couramment utilisé et lisible par machine, et de les transmettre à un autre responsable du traitement."
+  },
+  {
+    "question": "Quel est le rôle du délégué à la protection des données (DPO) ?",
+    "reference": "L'article 39 prévoit que le DPO informe et conseille le responsable et les employés, contrôle le respect du RGPD, dispense des conseils sur l'analyse d'impact (AIPD) et coopère avec l'autorité de contrôle comme point de contact."
+  }
+]

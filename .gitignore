@@ -1,5 +1,16 @@
+# Python
 venv/
-chroma_rgpd/
-.env
 __pycache__/
 *.pyc
+
+# Secrets
+.env
+
+# Index vectoriel généré (reconstruit par backend/scripts/build_index.py)
+backend/data/chroma_db/
+
+# Frontend
+node_modules/
+
+# Logs
+*.log
