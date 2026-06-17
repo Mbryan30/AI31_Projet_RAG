@@ -36,7 +36,6 @@ async def query(
         lambda: pipeline.smart_rag(body.question, body.mode),
     )
 
-    print(result)
     return result
 
 

@@ -1,10 +1,18 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# .env à la RACINE du projet (config.py est dans backend/app/core/ → 3 niveaux au-dessus). 
+_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=str(_ENV_PATH),
+        env_file_encoding="utf-8",
+        extra="ignore",   # tolère les clés non utilisées du .env (ex. GOOGLE_API_KEY)
+    )
 
     # App
     app_env: str = "development"
