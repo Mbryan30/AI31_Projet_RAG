@@ -103,7 +103,11 @@ def build_documents(
             if not contenu.strip():
                 continue
 
-            parent_id = str(uuid.uuid4())
+            # ID DÉTERMINISTE : ainsi le parent_id stocké dans ChromaDB
+            # (build initial) reste identique au parent_id reconstruit en
+            # mémoire à chaque démarrage. Sinon les chunks de la DB pointent
+            # vers des parents introuvables et retrieve_parents renvoie [].
+            parent_id = f"{chap_nom}::{numero}"
             parent_text = (
                 f"{chap_nom} – {chap_titre}\n"
                 f"{numero} – {titre}\n\n"

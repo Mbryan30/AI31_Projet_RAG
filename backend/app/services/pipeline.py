@@ -9,6 +9,7 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.services.retriever import RAGRetriever
+from app.services.llm import llm_text
 from app.schemas.query import QueryResponse, SourceRef, MessageMetrics, RagMode
 
 logger = logging.getLogger("rag.pipeline")
@@ -53,6 +54,7 @@ MODE_STRATEGY: dict[str, str] = {
     "crag":     "CRAG + RRF",
     "hyde":     "HyDE + Rerank",
     "selfrag":  "Self-RAG",
+    "agentic":  "Agentic RAG (LangGraph)",
 }
 
 
@@ -84,10 +86,12 @@ def _docs_to_sources(docs: list[Document], scores: list[float] | None = None) ->
 
 
 class RAGPipeline:
-    def __init__(self, retriever: RAGRetriever, llm, parent_documents: list[Document]):
+    def __init__(self, retriever: RAGRetriever, llm, parent_documents: list[Document],
+                 agentic=None):
         self.retriever        = retriever
         self.llm              = llm
         self.parent_documents = parent_documents
+        self.agentic          = agentic   # AgenticRAGPipeline (mode="agentic")
 
     def full_rag(self, question: str, mode: RagMode = "adaptive") -> QueryResponse:
         t0 = time.perf_counter()
@@ -98,7 +102,7 @@ class RAGPipeline:
         context   = _format_parents(reranked)
         prompt    = RGPD_PROMPT.format(context=context, question=question)
         result = self.llm.invoke(prompt)
-        raw: str = result.content if hasattr(result, "content") else str(result)
+        raw: str = llm_text(result)
 
         # Strip echoed prompt/marker
         marker = "Réponse :"
@@ -128,7 +132,11 @@ class RAGPipeline:
         - Article mention  → direct metadata lookup (no LLM)
         - Chapter mention  → chapter-level lookup
         - Otherwise        → full semantic RAG
+        - mode="agentic"   → graphe multi-agents LangGraph (planner, grader, critic…)
         """
+        if mode == "agentic" and self.agentic is not None:
+            return self.agentic.query(question)
+
         t0 = time.perf_counter()
 
         # ── 1. Direct article lookup ─────────────────────────────────

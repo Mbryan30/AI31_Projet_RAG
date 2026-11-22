@@ -35,7 +35,7 @@ export interface Session {
 
 // ─── RAG modes ───────────────────────────────────────────────
 
-export type RagMode = 'adaptive' | 'crag' | 'hyde' | 'selfrag'
+export type RagMode = 'adaptive' | 'crag' | 'hyde' | 'selfrag' | 'agentic'
 
 export interface RagModeConfig {
   id: RagMode
@@ -49,6 +49,7 @@ export const RAG_MODES: RagModeConfig[] = [
   { id: 'crag',     label: 'CRAG + Fusion', description: 'Corrective RAG avec Reciprocal Rank Fusion', color: '#3ddc84' },
   { id: 'hyde',     label: 'HyDE + Rerank', description: 'Hypothetical Documents + Cross-encoder',      color: '#a855f7' },
   { id: 'selfrag',  label: 'Self-RAG',      description: 'Auto-évaluation ISREL/ISSUP/ISUSE',           color: '#f5a623' },
+  { id: 'agentic',  label: 'RAG Agentique', description: 'Multi-agents LangGraph : planner, grader CRAG, critique Reflexion', color: '#ef4444' },
 ]
 
 // ─── Data sources ─────────────────────────────────────────────
