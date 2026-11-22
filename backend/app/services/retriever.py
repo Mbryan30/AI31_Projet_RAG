@@ -8,6 +8,8 @@ from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from sentence_transformers import CrossEncoder
 
+from app.services.llm import llm_text
+
 logger = logging.getLogger("rag.retriever")
 
 MULTI_QUERY_PROMPT = PromptTemplate(
@@ -55,7 +57,7 @@ class RAGRetriever:
 
     def _generate_queries(self, question: str) -> list[str]:
         output = self.llm.invoke(MULTI_QUERY_PROMPT.format(question=question))
-        text = output.content if hasattr(output, "content") else str(output)
+        text = llm_text(output)
         queries = [q.strip() for q in text.split("\n") if q.strip()]
         return queries[: self.variants]
 

@@ -4,7 +4,7 @@ from typing import Literal
 
 # ── Enums matching frontend types/index.ts ───────────────────────────
 
-RagMode   = Literal["adaptive", "crag", "hyde", "selfrag"]
+RagMode   = Literal["adaptive", "crag", "hyde", "selfrag", "agentic"]
 SourceId  = Literal["vectorstore", "postgres", "neo4j", "web"]
 
 
@@ -45,6 +45,9 @@ class QueryResponse(BaseModel):
     answer:  str
     sources: list[SourceRef]
     metrics: MessageMetrics
+    trace:   list[str] | None = Field(
+        default=None, description="Étapes suivies par les agents (mode agentic)"
+    )
 
 
 # ── SSE streaming token ───────────────────────────────────────────────

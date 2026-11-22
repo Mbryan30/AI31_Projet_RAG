@@ -2,7 +2,8 @@
 Évaluation RAGAS du RAG RGPD.
 
 Charge le RAG (backend), génère ses réponses sur le gold set (gold_set.json),
-puis score chaque réponse sur 4 métriques RAGAS (juge = Mistral).
+puis score chaque réponse sur 4 métriques RAGAS (juge = LLM local Ollama).
+Pour comparer baseline et RAG agentique : evaluation_comparative.py
 
 Pipeline :
   1. Charger le gold set (gold_set.json)
@@ -41,7 +42,7 @@ _gold_name    = sys.argv[1] if len(sys.argv) > 1 else "gold_set.json"
 GOLD_SET_PATH = str(Path(__file__).parent / _gold_name)
 CSV_PATH      = str(Path(__file__).parent / f"resultats_{Path(_gold_name).stem}.csv")
 
-load_dotenv(ROOT / ".env")          # MISTRAL_API_KEY chargée AVANT le chdir
+load_dotenv(ROOT / ".env")          # .env chargé AVANT le chdir
 sys.path.insert(0, str(BACKEND))
 os.chdir(BACKEND)
 
@@ -49,12 +50,13 @@ from app.core.container       import init_container, get_pipeline, get_retriever
 from app.services.pipeline    import RGPD_PROMPT, _format_parents
 from app.services.vectorstore import build_embedding_model
 from app.core.config          import get_settings
+from app.services.llm         import llm_text
 
 
 # ── Chargement du RAG ───────────────────────────────────────────────
 print("⏳  Initialisation du RAG (HTML + Chroma + embeddings + reranker)...")
 t0 = time.perf_counter()
-init_container()
+init_container(with_agentic=False)
 pipeline  = get_pipeline()
 retriever = get_retriever()
 print(f"✅  RAG prêt en {time.perf_counter() - t0:.1f}s")
@@ -68,7 +70,7 @@ def run_rag(question: str) -> tuple[str, list[str]]:
 
     prompt = RGPD_PROMPT.format(context=_format_parents(reranked), question=question)
     result = pipeline.llm.invoke(prompt)
-    answer = result.content if hasattr(result, "content") else str(result)
+    answer = llm_text(result)
 
     marker = "Réponse :"
     if marker in answer:
@@ -98,46 +100,20 @@ for i, item in enumerate(gold_set, 1):
     })
 
 
-# ── 3. Construction du juge (Mistral + embeddings) ──────────────────
+# ── 3. Construction du juge (LLM local Ollama par défaut + embeddings) ─────
 from ragas.llms       import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
-from langchain_mistralai import ChatMistralAI
+from app.services.llm import build_judge_llm
 
-# Instance dédiée au juge : 4096 tokens (le JSON structuré que RAGAS demande
-# au juge est long) et température nulle (sorties déterministes = JSON parsable).
-judge_llm = ChatMistralAI(
-    mistral_api_key=get_settings().MISTRAL_API_KEY,
-    model="mistral-small-latest",
-    max_tokens=4096,
-    temperature=0.0,
-)
-
-# Compat langchain_mistralai 1.1.5 : sa fusion des token_usage (multi-générations
-# de ResponseRelevancy) fait `dict += dict` et lève une TypeError. On la remplace
-# par une fusion récursive qui sait additionner des champs imbriqués.
-def _safe_combine_llm_outputs(self, llm_outputs):
-    overall: dict = {}
-    def _add(acc, d):
-        for k, v in (d or {}).items():
-            if isinstance(v, dict):
-                acc[k] = acc.get(k, {})
-                _add(acc[k], v)
-            elif isinstance(v, (int, float)):
-                acc[k] = acc.get(k, 0) + v
-            else:
-                acc[k] = v
-    for output in llm_outputs:
-        _add(overall, (output or {}).get("token_usage", {}))
-    return {"token_usage": overall, "model_name": getattr(self, "model", None)}
-
-import types
-judge_llm._combine_llm_outputs = types.MethodType(_safe_combine_llm_outputs, judge_llm)
+# Juge dédié : température 0 et sortie longue (JSON structuré de RAGAS).
+# Fournisseur/modèle réglables dans .env (JUDGE_PROVIDER, JUDGE_MODEL).
+judge_llm = build_judge_llm(get_settings())
 
 evaluator_llm        = LangchainLLMWrapper(judge_llm)
 evaluator_embeddings = LangchainEmbeddingsWrapper(
     build_embedding_model(get_settings().embedding_model)
 )
-print("\n✅  Juge RAGAS prêt (Mistral + embeddings HF)")
+print(f"\n✅  Juge RAGAS prêt ({getattr(judge_llm, 'model', '?')} + embeddings HF)")
 
 
 # ── 4. Scoring des 4 métriques ──────────────────────────────────────

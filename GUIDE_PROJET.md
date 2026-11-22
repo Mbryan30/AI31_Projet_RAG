@@ -17,6 +17,7 @@
 7. [Points d'attention / honnêteté technique](#7-points-dattention--honnêteté-technique)
 8. [Paramètres clés (récapitulatif)](#8-paramètres-clés-récapitulatif)
 9. [FAQ — questions probables du jury](#9-faq--questions-probables-du-jury)
+10. [Extension : RAG agentique multi-agents](#10-extension--rag-agentique-multi-agents)
 
 ---
 
@@ -366,3 +367,21 @@ Le pipeline est **générique** : il suffit de remplacer le parsing dans `indexi
 ---
 
 *Document généré pour l'équipe AI31 — UTC, Printemps 2026. À jour de l'état actuel du code.*
+
+---
+
+## 10. Extension : RAG agentique multi-agents
+
+Le projet contient désormais un **second pipeline**, agentique, construit avec **LangGraph**
+(`backend/app/services/agentic/`) et entièrement **local** (LLM via **Ollama**).
+
+- **Agents** : planner/routeur → researcher (outils : recherche hybride BM25 + dense/RRF,
+  `get_article`, reranker multilingue) → grader **CRAG** → rewriter (boucle) → writer →
+  critic (**Reflection / Self-RAG**) → reviser (**Reflexion**, boucle bornée).
+- **Activation** : `"mode": "agentic"` dans `POST /query`, ou mode « RAG Agentique » dans l'interface.
+- **Évaluation** : `evaluation/evaluation_comparative.py` compare baseline et agentique avec
+  **le même LLM** et **le même juge** ; résultats dans `evaluation/results/`.
+
+Analyse complète des faiblesses de la baseline, conception et justification métrique par
+métrique : **[RAG_AGENTIQUE.md](RAG_AGENTIQUE.md)**.
+

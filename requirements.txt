@@ -22,7 +22,12 @@ langchain-core==1.4.7
 langchain-community==0.3.24
 langchain-text-splitters==0.3.11
 langchain-mistralai==1.1.5
+langchain-ollama>=1.0.0          # LLM locaux via Ollama (défaut)
 chromadb==1.5.9
+
+# ── RAG agentique multi-agents ──────────────────────────────────────
+langgraph>=1.0.0,<2.0.0          # graphe d'agents (état partagé, boucles)
+rank-bm25>=0.2.2                 # recherche lexicale (retrieval hybride)
 
 # ── Embeddings & reranker (HuggingFace, CPU) ────────────────────────
 # sentence-transformers tire torch + transformers automatiquement.
@@ -35,3 +40,4 @@ beautifulsoup4==4.14.3
 ragas==0.4.3
 datasets==5.0.0
 pandas==3.0.3
+matplotlib>=3.8                  # graphique de comparaison

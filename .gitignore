@@ -14,3 +14,7 @@ node_modules/
 
 # Logs
 *.log
+
+# Évaluation : fichiers temporaires
+*.tmp
+evaluation/results/run_log.txt

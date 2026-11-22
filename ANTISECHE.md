@@ -40,6 +40,16 @@
 
 ---
 
+## RAG agentique en 5 phrases
+
+1. Un **graphe LangGraph** fait collaborer 7 agents spécialisés via un **état partagé** : planner, researcher, grader, rewriter, writer, critic, reviser.
+2. Le **planner** route la question et la **décompose** ; le **researcher** utilise des **outils** (recherche hybride BM25 + dense fusionnée par RRF, accès direct à un article, reranker multilingue).
+3. Le **grader** applique **CRAG** : il ne garde que les articles utiles et, si le contexte est insuffisant, le **rewriter** reformule et on recherche à nouveau.
+4. Le **critic** applique **Reflection/Self-RAG** (affirmations non fondées, manques, digressions) ; le **reviser** applique **Reflexion** (recherche ciblée + réécriture), boucles bornées.
+5. Même LLM local (Ollama `qwen2.5:7b`), même index, même juge (`qwen2.5:14b`) que la baseline → l'écart RAGAS mesure l'apport de l'**orchestration agentique**.
+
+---
+
 ## Réponses éclair (si on te demande…)
 
 - **« C'est quoi un RAG ? »** → Chercher d'abord, générer ensuite : on récupère les documents pertinents, puis le LLM répond à partir d'eux.
@@ -53,6 +63,6 @@
 
 ## ⚠️ À NE PAS dire (pièges)
 
-- ❌ Ne pas affirmer que **CRAG / HyDE / Self-RAG sont implémentés** → ce sont des **étiquettes d'interface** ; l'algorithme exécuté est toujours le même (parler d'« extensions prévues »).
+- ❌ Les modes **CRAG / HyDE / Self-RAG** de l'interface restent des **étiquettes** (même algorithme) ; en revanche le mode **« RAG Agentique »** est réellement implémenté (LangGraph : planner, grader CRAG, rewriter, critic/reviser Reflexion) — voir `RAG_AGENTIQUE.md`.
 - ❌ Ne pas dire « **vrai streaming token par token** » → le streaming de l'UI est **simulé** (réponse calculée puis renvoyée mot à mot).
 - ❌ Ne pas survendre la couverture → le corpus est **le texte du RGPD seul** (pas la jurisprudence ni les lignes directrices CNIL).
